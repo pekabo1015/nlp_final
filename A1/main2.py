@@ -4,8 +4,17 @@ import re
 from collections import Counter
 from html import escape
 
-from flask import Flask, render_template_string, request
-from markupsafe import Markup
+try:
+    from flask import Flask, render_template_string, request
+except ImportError:
+    Flask = None
+    render_template_string = None
+    request = None
+
+try:
+    from markupsafe import Markup
+except ImportError:
+    Markup = None
 
 # ---------------------------------------------------------------------------
 # 分词库：jieba（必选）+ snownlp（可选，用于算法对比）
@@ -158,20 +167,26 @@ def pos_class(flag: str) -> str:
         return "adj"
     return "other"
 
-def build_pos_html(tagged_words) -> Markup:
+def build_pos_html(tagged_words):
     fragments = []
     for word, flag in tagged_words:
         css_class = pos_class(flag)
         fragments.append(
             f'<span class="tag {css_class}">{escape(word)} / {escape(flag)}</span>'
         )
-    return Markup("".join(fragments))
+    html_text = "".join(fragments)
+    if Markup is None:
+        return html_text
+    return Markup(html_text)
 
 
 # ---------------------------------------------------------------------------
 # Flask 应用与模板
 # ---------------------------------------------------------------------------
-app = Flask(__name__)
+if Flask is not None:
+    app = Flask(__name__)
+else:
+    app = None
 
 HTML_TEMPLATE = """
 <!doctype html>
@@ -513,85 +528,86 @@ HTML_TEMPLATE = """
 """
 
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    raw_text = ""
-    normalized_text = ""
-    segmented_text = ""
-    top_words = []
-    freq_labels = []
-    freq_values = []
-    pos_html = None
-    algo_results = []
-    stats_rows = []
-    sim_names = []
-    sim_matrix = []
-    count_labels = []
-    count_values = []
-    max_freq = 1
-    max_count = 1
+if app is not None:
+    @app.route("/", methods=["GET", "POST"])
+    def index():
+        raw_text = ""
+        normalized_text = ""
+        segmented_text = ""
+        top_words = []
+        freq_labels = []
+        freq_values = []
+        pos_html = None
+        algo_results = []
+        stats_rows = []
+        sim_names = []
+        sim_matrix = []
+        count_labels = []
+        count_values = []
+        max_freq = 1
+        max_count = 1
 
-    if request.method == "POST":
-        raw_text = request.form.get("text", "")
-        normalized_text = normalize_text(raw_text)
+        if request.method == "POST":
+            raw_text = request.form.get("text", "")
+            normalized_text = normalize_text(raw_text)
 
-        if normalized_text:
-            # 默认分词与词频、词性（jieba）
-            if JIEBA_AVAILABLE:
-                words = segment_jieba_default(normalized_text)
-                segmented_text = " ".join(words)
-                top_freq = get_top_frequencies(words, limit=5)
-                top_words = [f"{w}({c})" for w, c in top_freq]
-                freq_labels = [w for w, _ in top_freq]
-                freq_values = [c for _, c in top_freq]
-                max_freq = max(freq_values, default=1)
-                tagged = [(x.word, x.flag) for x in pseg.cut(normalized_text) if x.word.strip()]
-                pos_html = build_pos_html(tagged)
+            if normalized_text:
+                if JIEBA_AVAILABLE:
+                    words = segment_jieba_default(normalized_text)
+                    segmented_text = " ".join(words)
+                    top_freq = get_top_frequencies(words, limit=5)
+                    top_words = [f"{w}({c})" for w, c in top_freq]
+                    freq_labels = [w for w, _ in top_freq]
+                    freq_values = [c for _, c in top_freq]
+                    max_freq = max(freq_values, default=1)
+                    tagged = [
+                        (x.word, x.flag)
+                        for x in pseg.cut(normalized_text)
+                        if x.word.strip()
+                    ]
+                    pos_html = build_pos_html(tagged)
 
-            # 多算法分词
-            algo_results = run_all_segmenters(normalized_text)
+                algo_results = run_all_segmenters(normalized_text)
 
-            if algo_results:
-                # 统计行
-                stats_rows = []
-                for name, words in algo_results:
-                    s = stat_segments(words)
-                    stats_rows.append({
-                        "name": name,
-                        "count": s["count"],
-                        "avg_len": s["avg_len"],
-                        "unique": s["unique"],
-                    })
-                count_labels = [r["name"] for r in stats_rows]
-                count_values = [r["count"] for r in stats_rows]
-                max_count = max((r["count"] for r in stats_rows), default=1)
+                if algo_results:
+                    stats_rows = []
+                    for name, words in algo_results:
+                        s = stat_segments(words)
+                        stats_rows.append(
+                            {
+                                "name": name,
+                                "count": s["count"],
+                                "avg_len": s["avg_len"],
+                                "unique": s["unique"],
+                            }
+                        )
+                    count_labels = [r["name"] for r in stats_rows]
+                    count_values = [r["count"] for r in stats_rows]
+                    max_count = max((r["count"] for r in stats_rows), default=1)
 
-                # 相似度矩阵
-                sim_names, sim_matrix = build_similarity_matrix(algo_results)
+                    sim_names, sim_matrix = build_similarity_matrix(algo_results)
 
-    return render_template_string(
-        HTML_TEMPLATE,
-        raw_text=raw_text,
-        normalized_text=normalized_text,
-        segmented_text=segmented_text,
-        top_words=top_words,
-        freq_labels=freq_labels,
-        freq_values=freq_values,
-        pos_html=pos_html,
-        jieba_available=JIEBA_AVAILABLE,
-        jieba_error=JIEBA_IMPORT_ERROR,
-        opencc_available=OPENCC_AVAILABLE,
-        algo_results=algo_results,
-        stats_rows=stats_rows,
-        sim_names=sim_names,
-        sim_matrix=sim_matrix,
-        count_labels=count_labels,
-        count_values=count_values,
-        max_freq=max_freq,
-        max_count=max_count,
-    )
+        return render_template_string(
+            HTML_TEMPLATE,
+            raw_text=raw_text,
+            normalized_text=normalized_text,
+            segmented_text=segmented_text,
+            top_words=top_words,
+            freq_labels=freq_labels,
+            freq_values=freq_values,
+            pos_html=pos_html,
+            jieba_available=JIEBA_AVAILABLE,
+            jieba_error=JIEBA_IMPORT_ERROR,
+            opencc_available=OPENCC_AVAILABLE,
+            algo_results=algo_results,
+            stats_rows=stats_rows,
+            sim_names=sim_names,
+            sim_matrix=sim_matrix,
+            count_labels=count_labels,
+            count_values=count_values,
+            max_freq=max_freq,
+            max_count=max_count,
+        )
 
-
-if __name__ == "__main__":
-    # 与 main.py 错开端口，便于同时运行对比：main.py → 5000，本应用 → 5001
-    app.run(host="127.0.0.1", port=5001, debug=True)
+    if __name__ == "__main__":
+        app.run(host="127.0.0.1", port=5001, debug=True)
