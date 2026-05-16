@@ -573,6 +573,40 @@ def extract_coreference_clusters(text: str) -> list[CoreferenceCluster]:
     return build_clusters_from_strings(text, raw_clusters)
 
 
+def extract_coreference_clusters_fallback(text: str) -> list[CoreferenceCluster]:
+    entity_pattern = re.compile(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b")
+    pronoun_pattern = re.compile(r"\b(he|him|his|she|her|hers|they|them|their|it|its)\b", re.IGNORECASE)
+
+    events: list[tuple[int, str, str]] = []
+    for m in entity_pattern.finditer(text):
+        ent = m.group(1).strip()
+        if ent:
+            events.append((m.start(1), "ENT", ent))
+    for m in pronoun_pattern.finditer(text):
+        pro = m.group(1).strip()
+        if pro:
+            events.append((m.start(1), "PRO", pro))
+
+    events.sort(key=lambda x: x[0])
+    last_entity: str | None = None
+    clusters_map: dict[str, list[str]] = {}
+
+    for _, kind, value in events:
+        if kind == "ENT":
+            last_entity = value
+            clusters_map.setdefault(last_entity, [last_entity])
+            continue
+        if kind == "PRO" and last_entity is not None:
+            items = clusters_map.setdefault(last_entity, [last_entity])
+            if value not in items:
+                items.append(value)
+
+    raw_clusters = [mentions for mentions in clusters_map.values() if len(mentions) >= 2]
+    if not raw_clusters:
+        return []
+    return build_clusters_from_strings(text, raw_clusters)
+
+
 def render_coreference_html(text: str, clusters: list[CoreferenceCluster]) -> str:
     mentions = []
     for cluster in clusters:
@@ -977,11 +1011,8 @@ def render_coreference_tab() -> None:
     try:
         clusters = extract_coreference_clusters(analyzed_text)
     except ImportError:
-        st.error("当前环境缺少 `fastcoref`，暂时无法执行模块三分析。")
-        st.markdown("需要的依赖：")
-        st.code("pip install fastcoref")
-        st.info("首次运行 `fastcoref` 时还可能自动下载模型权重，请保持网络可用。")
-        return
+        st.warning("当前环境缺少 `fastcoref`，已自动切换为规则回退版本（仅用于演示，效果弱于模型）。")
+        clusters = extract_coreference_clusters_fallback(analyzed_text)
     except Exception as error:
         st.error(f"指代消解分析失败：{error}")
         st.info("请确认 `fastcoref` 已正确安装，并且模型权重可以正常加载。")
