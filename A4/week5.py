@@ -394,10 +394,13 @@ def main():
                     这个768维的向量编码了该词在当前上下文中的完整语义信息。
                     """)
                     
-                    # 展示向量值 - 分段显示
-                    with st.expander("📋 查看完整词向量数值（768维）", expanded=False):
+                    show_full_vec = st.checkbox(
+                        "显示完整词向量数值（768维）",
+                        value=False,
+                        key="show_full_vec_phase1",
+                    )
+                    if show_full_vec:
                         st.markdown("**所有维度的数值：**")
-                        # 将向量分成多行显示
                         vec_str = ", ".join([f"{v:.6f}" for v in embedding_vector])
                         st.code(vec_str, language="")
                     
