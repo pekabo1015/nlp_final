@@ -9,6 +9,61 @@ from shared.legacy_runner import run_legacy_streamlit_script
 
 BASE_DIR = Path(__file__).resolve().parent
 
+MODULE_EXAMPLES = {
+    "板块 1：中文分词与词性分析": {
+        "输入示例": "今天的天气很好，南京长江大桥上有很多行人，有结婚的和尚未结婚的，我们会在里面找人回答自然语言处理问题。",
+    },
+    "板块 3：语义分析综合平台": {
+        "输入示例": (
+            'The Boat Race is a side-by-side rowing competition between the University of Oxford '
+            '(sometimes referred to as the "Dark Blues") and the University of Cambridge '
+            '(sometimes referred to as the "Light Blues"). First held in 1829, the race takes place '
+            "on the 4.2-mile (6.8 km) Championship Course, between Putney and Mortlake on the River Thames "
+            "in south-west London. The rivalry is a major point of honour between the two universities; "
+            "it is followed throughout the United Kingdom and broadcast worldwide. Oxford went into the 2016 "
+            "race as champions, having won the 2015 race by a margin of six lengths, but Cambridge led overall "
+            "with 81 victories to Oxford's 79 (excluding the 1877 race, officially a dead heat though claimed "
+            "as a victory by the Oxford crew). It was the first time in the history of The Boat Race that all "
+            "four senior races – the men's, women's, men's reserves' and women's reserves' – were held on the "
+            "same day and on the same course along the Tideway. Prior to 2015, the women's race, which first "
+            "took place in 1927, was usually held at the Henley Boat Races along the 2,000-metre (2,200 yd) "
+            "course; on at least two occasions in the interwar period, the women competed on the Thames between "
+            "Chiswick and Kew. Oxford went into the race as reigning champions, having won the 2015 race by six "
+            "and a half lengths, with Cambridge leading 41–29 overall. For the fourth year, the men's race was "
+            "sponsored by BNY Mellon while the women's race was sponsored by BNY Mellon's subsidiary, Newton "
+            "Investment Management. In January 2016, it was announced that the sponsors would donate the title "
+            "sponsorship to Cancer Research UK and that the event was to be retitled \"The Cancer Research UK Boat Races\". "
+            "There is no monetary award for winning the race, as the journalist Roger Alton notes: \"It's the last great "
+            "amateur event: seven months of pain for no prize money\". On Sunday 27 March, the women's race started at "
+            "3:10 p.m. British Summer Time, the women's reserve race (between Oxford's Osiris and Cambridge's Blondie) "
+            "at 3:25 p.m., the men's reserves' race (between Oxford's Isis and Cambridge's Goldie) fifteen minutes later "
+            "and the men's race a further half-hour after that at 4:10 pm. The men's race was umpired for the fifth time "
+            "by Simon Harris, who had overseen the inaugural Tideway running of the Women's Boat Race in 2015. He rowed "
+            "for Cambridge in the 1982 and 1983 races and was most recently umpire for the men's race in 2010 Rob Clegg, "
+            "umpire for the 2011 race and three-time Oxford Blue, took charge of the women's race. The men's and women's "
+            "reserves' races were umpired by Sarah Winckless and Judith Packer respectively, Winckless becoming the first-ever "
+            "female official of a men's race. Although around 250,000 spectators were expected to line the banks of the river, "
+            "engineering works and poor weather reduced the attendance. The event was broadcast live in the United Kingdom on "
+            "the BBC. Numerous broadcasters worldwide also showed the main races, including SuperSport across Africa, the EBU "
+            "across Europe, SKY México across Central America, TSN in Canada and Fox Sports in Australia. It was also streamed "
+            "live on BBC Online."
+        ),
+    },
+    "板块 8：机器翻译与 BLEU 评测": {
+        "示例 1（英文）": "It rains cats and dogs.",
+        "示例 2（英文）": "He likes the book that I see today.",
+        "示例 3（中文）": "音乐喜欢她非常",
+        "示例 4（中文）": "她十分喜爱音乐",
+    },
+    "板块 9：舆情情感分析系统": {
+        "好评": "挺好的，方便携带，不易撕破，物有所值，收到货感觉还是挺好的，家里有大包，就是想着出去的时候包包里面装包小的方便。纸巾很厚实没有什么异味，很好",
+        "差评": "太难用了，纸张很薄，性价比低",
+        "整体满意夹带抱怨": "挺好的，方便携带，不易撕破，收到货感觉还是挺好的，纸巾很厚实没有什么异味，就是有点贵，性价比不高",
+        "显式": "这屏幕画质太垃圾了",
+        "隐式": "在太阳底下根本看不清屏幕上的字",
+    },
+}
+
 MODULES = [
     {
         "title": "首页",
@@ -169,6 +224,12 @@ def render_selected_module(module: dict) -> None:
     if module["script"] is None:
         render_home()
         return
+
+    examples = MODULE_EXAMPLES.get(module["title"])
+    if examples:
+        with st.expander("示例文本（可复制）", expanded=False):
+            for label, text in examples.items():
+                st.text_area(label, value=text, height=120, key=f"example_{module['title']}_{label}")
 
     st.info(f"当前加载脚本：`{module['script'].relative_to(BASE_DIR)}`")
     run_legacy_streamlit_script(module["script"])
