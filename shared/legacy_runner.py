@@ -24,15 +24,33 @@ def _purge_modules(prefixes: list[str]) -> None:
 @contextmanager
 def _patched_streamlit_config():
     original_set_page_config = st.set_page_config
+    original_commands_set_page_config = None
+    original_commands_internal = None
+
+    try:
+        import streamlit.commands.page_config as page_config
+
+        original_commands_set_page_config = getattr(page_config, "set_page_config", None)
+        original_commands_internal = getattr(page_config, "_set_page_config", None)
+    except Exception:
+        page_config = None
 
     def _safe_set_page_config(*args, **kwargs):
         return None
 
     st.set_page_config = _safe_set_page_config
+    if page_config is not None and original_commands_set_page_config is not None:
+        page_config.set_page_config = _safe_set_page_config
+    if page_config is not None and original_commands_internal is not None:
+        page_config._set_page_config = _safe_set_page_config
     try:
         yield
     finally:
         st.set_page_config = original_set_page_config
+        if page_config is not None and original_commands_set_page_config is not None:
+            page_config.set_page_config = original_commands_set_page_config
+        if page_config is not None and original_commands_internal is not None:
+            page_config._set_page_config = original_commands_internal
 
 
 @contextmanager
@@ -62,7 +80,7 @@ def run_legacy_streamlit_script(script_path: str | Path) -> None:
 
     with _patched_streamlit_config():
         with _temporary_script_context(path):
-            _purge_modules(["nltk", "benepar"])
+            _purge_modules(["nltk"])
             try:
                 runpy.run_path(str(path), run_name="__main__")
             except SystemExit:
