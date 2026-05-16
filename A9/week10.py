@@ -12,7 +12,10 @@ from typing import Any
 
 import streamlit as st
 import plotly.graph_objects as go
-from huggingface_hub import close_session
+try:
+    from huggingface_hub import close_session as hf_close_session
+except Exception:
+    hf_close_session = None
 from transformers import pipeline
 
 MODEL_ID = "lxyuan/distilbert-base-multilingual-cased-sentiments-student"
@@ -56,7 +59,8 @@ def load_sentiment_pipeline():
     """
     last_err: BaseException | None = None
     for _ in range(3):
-        close_session()
+        if hf_close_session is not None:
+            hf_close_session()
         try:
             return pipeline(
                 "sentiment-analysis",
