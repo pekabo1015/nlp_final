@@ -1,0 +1,10 @@
+# Streamlit 1.24 在 Py3.12 上常触发旧版 Pillow 源码编译失败；1.29+ 配合 Pillow 10+ 有官方 wheel
+# 原 streamlit 1.24.x 要求 numpy<2，与 numpy 2.x 不可同时 pin
+pillow>=10.2.0,<12
+streamlit==1.39.0
+scikit-learn==1.5.2
+nltk==3.9.0
+gensim==4.4.0
+altair==5.0.0
+pandas==2.2.3
+numpy==1.26.4
