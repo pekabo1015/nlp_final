@@ -84,7 +84,7 @@ with tabs[0]:
             else:
                 st.info('当前为 One-hot 表示，关键词可视化未包含 TF-IDF 权重选择。')
 
-            if matrix.shape[1] >= 2:
+            if matrix.shape[0] >= 2 and matrix.shape[1] >= 2:
                 svd = TruncatedSVD(n_components=2, random_state=42)
                 term_vectors = svd.fit_transform(matrix.T)
                 term_df = pd.DataFrame(term_vectors, columns=['x', 'y'], index=feature_names)
@@ -110,7 +110,7 @@ with tabs[0]:
 
                 st.altair_chart(scatter + text, use_container_width=True)
             else:
-                st.warning('词汇维度小于 2，无法进行 LSA 可视化。')
+                st.warning('句子数或词汇维度小于 2，无法进行 LSA 可视化。')
 
 with tabs[1]:
     st.header('模块 2：语义词向量（Word2Vec 实时训练与测试）')
