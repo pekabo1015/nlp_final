@@ -1,0 +1,11 @@
+streamlit>=1.28.0
+nltk
+# NumPy 1.26.x：避免与 pandas/spacy/thinc 等二进制扩展出现 ABI 混装（勿与 NumPy 2.x 混用）
+numpy>=1.26.4,<2.0
+pandas>=2.0,<3
+matplotlib>=3.8,<4
+torch>=2.6,<3
+transformers==4.46.3
+# spaCy 3.7+ 与 NumPy 1.26 栈更一致；thinc/blis 由 pip 解析
+spacy>=3.7.2,<4.0
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
