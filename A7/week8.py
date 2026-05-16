@@ -38,9 +38,20 @@ def _add_entity(entities: List[Dict], text: str, start: int, end: int, label: st
     entities.append({"start": start, "end": end, "text": span_text, "label": label})
 
 
+def _entity_quality(ent: Dict) -> Tuple[int, int]:
+    text = str(ent.get("text") or "")
+    punct = sum(1 for ch in text if ch in "，。,.!?、；;：:()（）《》“”\"'")
+    spaces = text.count(" ")
+    penalty = punct * 20 + spaces * 8
+    length = len(text)
+    if length > 18:
+        penalty += (length - 18) * 3
+    return (penalty, -length)
+
+
 def _resolve_overlaps(entities: List[Dict]) -> List[Dict]:
     # 优先保留更长片段，避免短片段覆盖长实体
-    entities.sort(key=lambda x: (x["start"], -(x["end"] - x["start"])))
+    entities.sort(key=lambda x: (x["start"],) + _entity_quality(x))
     filtered: List[Dict] = []
     for ent in entities:
         has_overlap = False
@@ -152,6 +163,15 @@ def spacy_extract_entities(text: str) -> List[Dict]:
     for ent in doc.ents:
         mapped = _map_spacy_label_to_demo_label(ent.label_)
         if mapped is None:
+            continue
+        span_text = text[ent.start_char:ent.end_char].strip()
+        if not span_text:
+            continue
+        if len(span_text) > 20:
+            continue
+        if any(ch in span_text for ch in "，。,.!?、；;：:()（）《》“”\"'"):
+            continue
+        if mapped == "ORG" and any(tok in span_text for tok in ("在", "并", "与", "会面", "工作")):
             continue
         _add_entity(entities, text, ent.start_char, ent.end_char, mapped)
     # 融合 spaCy 与规则结果，提升对中英混合输入的稳定识别能力。
