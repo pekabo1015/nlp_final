@@ -10,6 +10,17 @@ from pathlib import Path
 import streamlit as st
 
 
+def _purge_modules(prefixes: list[str]) -> None:
+    to_delete = []
+    for name in sys.modules.keys():
+        for prefix in prefixes:
+            if name == prefix or name.startswith(prefix + "."):
+                to_delete.append(name)
+                break
+    for name in to_delete:
+        sys.modules.pop(name, None)
+
+
 @contextmanager
 def _patched_streamlit_config():
     original_set_page_config = st.set_page_config
@@ -51,6 +62,7 @@ def run_legacy_streamlit_script(script_path: str | Path) -> None:
 
     with _patched_streamlit_config():
         with _temporary_script_context(path):
+            _purge_modules(["nltk", "benepar"])
             try:
                 runpy.run_path(str(path), run_name="__main__")
             except SystemExit:
