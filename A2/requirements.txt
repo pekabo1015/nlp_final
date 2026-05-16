@@ -1,0 +1,10 @@
+streamlit
+# NumPy 2.x 与部分已编译扩展 ABI 不兼容，易触发 dtype size changed
+numpy>=1.24,<2
+# 与下方 en_core_web_sm wheel 对齐，避免 pip 装到 spaCy 3.8 却装 3.7 模型
+spacy>=3.7.2,<3.8
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
+benepar
+nltk
+# benepar 内部使用 T5 的 build_inputs_with_special_tokens，新版 transformers 已移除该 API，需固定兼容版本
+transformers>=4.25,<4.44
