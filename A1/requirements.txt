@@ -1,0 +1,14 @@
+# Web 框架（必选）
+flask>=3.0.0
+
+# Streamlit 部署（本地：streamlit run streamlit_app.py）
+streamlit>=1.28.0
+
+# 中文分词与词性标注（必选）
+jieba>=0.42.1
+
+# 繁简转换（可选，不装则跳过繁简转换）
+opencc-python-reimplemented>=0.1.7
+
+# 多算法对比用分词器（可选，不装则对应算法不参与对比）
+snownlp
